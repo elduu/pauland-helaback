@@ -3,6 +3,8 @@ const cors = require("cors");
 const mysql = require("mysql2/promise"); // Use promise version for async/await
 const path = require("path");
 const { Telegraf } = require("telegraf");
+const { startBot, stopBot } = require("./bot");
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -81,6 +83,24 @@ app.get("/api/wedding-photos", async (req, res) => {
 });
 
 const PORT = 5000;
-app.listen(PORT, () => {
+
+app.listen(PORT, async () => {
   console.log(`Server running on http://localhost:${PORT}`);
+
+  try {
+    await startBot();
+  } catch (err) {
+    console.error("Failed to start Telegram bot:", err);
+  }
+});
+process.once("SIGINT", () => {
+  console.log("Shutting down gracefully (SIGINT)...");
+  stopBot("SIGINT");
+  process.exit(0);
+});
+
+process.once("SIGTERM", () => {
+  console.log("Shutting down gracefully (SIGTERM)...");
+  stopBot("SIGTERM");
+  process.exit(0);
 });

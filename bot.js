@@ -125,11 +125,12 @@ bot.on("photo", async (ctx) => {
   }
 });
 // Launch bot
-bot
-  .launch()
-  .then(() => console.log("🤵👰 Wedding Photo Bot is LIVE!"))
-  .catch((err) => console.error("Bot failed to start:", err));
-
-// Graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+module.exports = {
+  startBot: async () => {
+    await bot.launch();
+    console.log("🤵👰 Wedding Photo Bot is LIVE!");
+  },
+  stopBot: (signal) => {
+    bot.stop(signal);
+  },
+};
