@@ -11,14 +11,14 @@ const fetch = require("node-fetch"); // ensure you have node-fetch installed
 // =========================
 // Config
 // =========================
-const BOT_TOKEN = process.env.BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8496563288:AAFilcA-eA5Ge5JQzILRMSu2NNJQ5BiZNTQ';
 const PORT = process.env.PORT || 5000;
 
 // MySQL Pool
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "Admin@123",
+  host: process.env.DB_HOST || "68.183.172.126",
+  user: process.env.DB_USER || "yilma",
+  password: process.env.DB_PASSWORD || "Redu@123",
   database: process.env.DB_NAME || "wedding_db",
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
