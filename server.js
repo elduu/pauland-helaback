@@ -25,9 +25,26 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Express App
+// Express
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+  "http://laziandtsi-wed-front-dozq56-9b9bbe-68-183-172-126.traefik.me",
+  "http://localhost:5173" // for local development
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 // Uploads folder
