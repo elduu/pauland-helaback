@@ -28,8 +28,8 @@ const pool = mysql.createPool({
 // Express
 const app = express();
 const allowedOrigins = [
-  "http://laziandtsi-wed-front-dozq56-9b9bbe-68-183-172-126.traefik.me",
-  "http://localhost:5173" // for local development
+  "https://weddingapi.newblossomequb.net",
+
 ];
 
 app.use(cors({
@@ -107,19 +107,33 @@ app.get("/", (req, res) => {
 // POST RSVP
 app.post("/rsvp", async (req, res) => {
   const { name, attending, wish } = req.body;
-  if (!name || !wish) return res.status(400).json({ message: "Name and wish are required" });
+
+  if (!name || !wish) {
+    return res.status(400).json({ message: "Name and wish are required" });
+  }
+
+  // Convert attending to boolean
+  const attendingValue =
+    attending === "yes" ? 1 :
+    attending === "no" ? 0 :
+    null;
 
   try {
     await pool.execute(
       "INSERT INTO rsvps (name, attending, wish) VALUES (?, ?, ?)",
-      [name, attending ?? null, wish]
+      [name, attendingValue, wish]
     );
+
     res.json({ message: "RSVP submitted successfully!" });
   } catch (err) {
-    console.error("RSVP Error:", err);
-    res.status(500).json({ message: "Database error" });
+    console.error("RSVP DB ERROR:", err);
+    res.status(500).json({
+      message: "Database error",
+      error: err.message
+    });
   }
 });
+
 
 // GET RSVPs
 app.get("/rsvp", async (req, res) => {
