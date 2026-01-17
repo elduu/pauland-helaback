@@ -156,15 +156,23 @@ app.use("/uploads", express.static(uploadsDir));
 app.get("/api/wedding-photos", async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      "SELECT file_path AS url, sender, timestamp FROM wedding_photos ORDER BY timestamp DESC"
+      "SELECT file_path, sender, timestamp FROM wedding_photos ORDER BY timestamp DESC"
     );
-    res.json(rows);
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    const photos = rows.map(row => ({
+      url: `${baseUrl}${row.file_path}`,
+      sender: row.sender,
+      timestamp: row.timestamp
+    }));
+
+    res.json(photos);
   } catch (err) {
     console.error("DB Error fetching photos:", err);
     res.status(500).json({ error: "Failed to load photos" });
   }
 });
-
 // =========================
 // Telegram Bot
 // =========================
