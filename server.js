@@ -159,7 +159,8 @@ app.get("/api/wedding-photos", async (req, res) => {
       "SELECT file_path, sender, timestamp FROM wedding_photos ORDER BY timestamp DESC"
     );
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl = `https://${req.get("host")}`;
+
 
     const photos = rows.map(row => ({
       url: `${baseUrl}${row.file_path}`,
@@ -172,6 +173,7 @@ app.get("/api/wedding-photos", async (req, res) => {
     console.error("DB Error fetching photos:", err);
     res.status(500).json({ error: "Failed to load photos" });
   }
+
 });
 // =========================
 // Telegram Bot
