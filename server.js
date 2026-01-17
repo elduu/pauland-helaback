@@ -29,7 +29,8 @@ const pool = mysql.createPool({
 const app = express();
 const allowedOrigins = [
   "https://weddingapi.newblossomequb.net",
-
+  "http://localhost:5173",
+  "https://wedding.newblossomequb.net"
 ];
 
 app.use(cors({
