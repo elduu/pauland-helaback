@@ -226,9 +226,9 @@ bot.on("photo", async (ctx) => {
     // Auto-clear media group tracker
     if (mediaGroupId) setTimeout(() => processedGroups.delete(mediaGroupId), 10000);
 
-    const photoCount = photos.length;
+   
     await ctx.replyWithHTML(
-      `✨ Thank you <b>${sender}</b>! Your ${photoCount > 1 ? photoCount + " photos are" : "photo is"} now live on the wedding website! ❤️`
+      `✨ Thank you <b>${sender}</b>! Your  photos are now live on the wedding website! ❤️`
     );
   } catch (err) {
     console.error("Photo save error:", err);
