@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "68.183.172.126",
   user: process.env.DB_USER || "yilma",
-  password: process.env.DB_PASSWORD ,
+  password: process.env.DB_PASSWORD || "Redu@123",
   database: process.env.DB_NAME || "mysql",
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
@@ -59,7 +59,7 @@ async function initDatabase() {
   try {
     // RSVPs table
     await pool.execute(`
-      CREATE TABLE IF NOT EXISTS rsvps (
+      CREATE TABLE IF NOT EXISTS rsvpspaul (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         attending BOOLEAN DEFAULT NULL,
@@ -70,7 +70,7 @@ async function initDatabase() {
 
     // Wedding photos table (avoid duplicate file_ids)
     await pool.execute(`
-      CREATE TABLE IF NOT EXISTS wedding_photos (
+      CREATE TABLE IF NOT EXISTS wedding_photospaul (
         id INT AUTO_INCREMENT PRIMARY KEY,
         file_id VARCHAR(255) NOT NULL UNIQUE,
         file_path VARCHAR(512) NOT NULL,
@@ -121,7 +121,7 @@ app.post("/rsvp", async (req, res) => {
 
   try {
     await pool.execute(
-      "INSERT INTO rsvps (name, attending, wish) VALUES (?, ?, ?)",
+      "INSERT INTO rsvpspaul (name, attending, wish) VALUES (?, ?, ?)",
       [name, attendingValue, wish]
     );
 
@@ -140,7 +140,7 @@ app.post("/rsvp", async (req, res) => {
 app.get("/rsvp", async (req, res) => {
   try {
     const [results] = await pool.execute(
-      "SELECT name, wish FROM rsvps ORDER BY created_at DESC"
+      "SELECT name, wish FROM rsvpspaul ORDER BY created_at DESC"
     );
     res.json(results);
   } catch (err) {
@@ -156,7 +156,7 @@ app.use("/uploads", express.static(uploadsDir));
 app.get("/api/wedding-photos", async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      "SELECT file_path, sender, timestamp FROM wedding_photos ORDER BY timestamp DESC"
+      "SELECT file_path, sender, timestamp FROM wedding_photospaul ORDER BY timestamp DESC"
     );
 
     const baseUrl = `https://${req.get("host")}`;
@@ -219,7 +219,7 @@ bot.on("photo", async (ctx) => {
 
     // Insert photo, ignore duplicates
     await pool.execute(
-      "INSERT IGNORE INTO wedding_photos (file_id, file_path, sender) VALUES (?, ?, ?)",
+      "INSERT IGNORE INTO wedding_photospaul (file_id, file_path, sender) VALUES (?, ?, ?)",
       [fileId, webPath, sender]
     );
 
