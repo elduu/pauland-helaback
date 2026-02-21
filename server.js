@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "68.183.172.126",
   user: process.env.DB_USER || "yilma",
-  password: process.env.DB_PASSWORD || "Redu@123",
+  password: process.env.DB_PASSWORD ,
   database: process.env.DB_NAME || "mysql",
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
@@ -28,7 +28,7 @@ const pool = mysql.createPool({
 // Express
 const app = express();
 const allowedOrigins = [
-  "https://api.newblossomequb.net",
+  "https://apiinv.newblossomequb.net",
   "http://localhost:5173",
   "https://weddinginvitation.newblossomequb.net"
 ];
