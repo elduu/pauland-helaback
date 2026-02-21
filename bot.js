@@ -11,14 +11,14 @@ app.use(cors());
 app.use(express.json());
 // ==================== CONFIGURATION ====================
  // ← Replace with your real token from BotFather
-const BOT_TOKEN ='8496563288:AAFilcA-eA5Ge5JQzILRMSu2NNJQ5BiZNTQ'; // ← Replace with your real token from BotFather
+const BOT_TOKEN ='8376491131:AAHnCYQh_F8mKgMvNdndpx7Gc2tPTWAzkfM'; // ← Replace with your real token from BotFather
  // ← Replace with your real token!
 
 const pool = mysql.createPool({
   host: "localhost",
   user: "root",
   password: "Admin@123",
-  database: "wedding_db",
+  database: "weddinghela_db",
   waitForConnections: true,
   connectionLimit: 10,
 });

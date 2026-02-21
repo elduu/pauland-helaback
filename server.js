@@ -11,15 +11,15 @@ const fetch = require("node-fetch"); // ensure you have node-fetch installed
 // =========================
 // Config
 // =========================
-const BOT_TOKEN = process.env.BOT_TOKEN || '8496563288:AAFilcA-eA5Ge5JQzILRMSu2NNJQ5BiZNTQ';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8376491131:AAHnCYQh_F8mKgMvNdndpx7Gc2tPTWAzkfM';
 const PORT = process.env.PORT || 5000;
 
 // MySQL Pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "68.183.172.126",
   user: process.env.DB_USER || "yilma",
-  password: process.env.DB_PASSWORD || "Redu@123",
-  database: process.env.DB_NAME || "wedding_db",
+  password: process.env.DB_PASSWORD ,
+  database: process.env.DB_NAME || "mysql",
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
   queueLimit: 0,
@@ -28,9 +28,9 @@ const pool = mysql.createPool({
 // Express
 const app = express();
 const allowedOrigins = [
-  "https://weddingapi.newblossomequb.net",
+  "https://api.newblossomequb.net",
   "http://localhost:5173",
-  "https://wedding.newblossomequb.net"
+  "https://weddinginvitation.newblossomequb.net"
 ];
 
 app.use(cors({
