@@ -33,6 +33,7 @@ const allowedOrigins = [
   "https://weddinginvitation.newblossomequb.net",
 
   "http://127.0.0.1:5173",
+"https://weddinginivitation.newblossomequb.net",
 "https://weddinginivitation.newblossomequb.net"
 ];
 
