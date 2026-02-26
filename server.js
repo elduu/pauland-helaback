@@ -30,7 +30,10 @@ const app = express();
 const allowedOrigins = [
   "https://apiinv.newblossomequb.net",
   "http://localhost:5173",
-  "https://weddinginvitation.newblossomequb.net"
+  "https://weddinginvitation.newblossomequb.net",
+
+  "http://127.0.0.1:5173",
+"https://weddinginivitation.newblossomequb.net"
 ];
 
 app.use(cors({
