@@ -1,266 +1,410 @@
-// bot.js - Wedding Photo Bot + Node.js server
 require("dotenv").config();
-const { Telegraf } = require("telegraf");
-const fs = require("fs");
-const path = require("path");
+
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2/promise");
-const fetch = require("node-fetch"); // ensure you have node-fetch installed
+const { Telegraf } = require("telegraf");
+const fetch = require("node-fetch");
+const helmet = require("helmet");
+const compression = require("compression");
+
+const { v2: cloudinary } = require("cloudinary");
+const streamifier = require("streamifier");
 
 // =========================
-// Config
+// ENV
 // =========================
-const BOT_TOKEN = process.env.BOT_TOKEN || '8376491131:AAHnCYQh_F8mKgMvNdndpx7Gc2tPTWAzkfM';
+
 const PORT = process.env.PORT || 5000;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
-// MySQL Pool
+// =========================
+// Cloudinary Setup
+// Uses CLOUDINARY_URL
+// =========================
+
+cloudinary.config({
+  secure: true
+});
+
+// =========================
+// Database
+// =========================
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "68.183.172.126",
-  user: process.env.DB_USER || "yilma",
-  password: process.env.DB_PASSWORD ,
-  database: process.env.DB_NAME || "mysql",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
-  queueLimit: 0,
 });
 
-// Express
+// =========================
+// Express Setup
+// =========================
+
 const app = express();
+
+app.use(helmet());
+app.use(compression());
+
 const allowedOrigins = [
   "https://apiinv.newblossomequb.net",
-  "http://localhost:5173",
   "https://weddinginvitation.newblossomequb.net",
-
+  "http://localhost:5173",
   "http://127.0.0.1:5173",
-"https://weddinginivitation.newblossomequb.net",
-"https://weddinginivitation.newblossomequb.net"
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps, Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error("Blocked by CORS")
+      );
+
+    },
+  })
+);
+
 app.use(express.json());
 
-// Uploads folder
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+// =========================
+// Database Init
+// =========================
 
-// =========================
-// Database Initialization
-// =========================
 async function initDatabase() {
-  try {
-    // RSVPs table
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS rsvpspaul (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        attending BOOLEAN DEFAULT NULL,
-        wish TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
-    // Wedding photos table (avoid duplicate file_ids)
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS wedding_photospaul (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        file_id VARCHAR(255) NOT NULL UNIQUE,
-        file_path VARCHAR(512) NOT NULL,
-        sender VARCHAR(255),
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS rsvps (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      attending BOOLEAN,
+      wish TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    console.log("Database tables verified / created successfully");
-  } catch (err) {
-    console.error("Database initialization failed:", err.message);
-    process.exit(1);
-  }
-}
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS wedding_photos (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      file_id VARCHAR(255) UNIQUE,
+      image_url TEXT NOT NULL,
+      sender VARCHAR(255),
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-// Test DB connection
-async function testDbConnection() {
-  try {
-    const conn = await pool.getConnection();
-    console.log("MySQL Connected Successfully");
-    conn.release();
-  } catch (err) {
-    console.error("MySQL Connection Failed:", err.message);
-    process.exit(1);
-  }
+  console.log("Database Ready");
+
 }
 
 // =========================
-// Express Routes
+// Health
 // =========================
+
 app.get("/", (req, res) => {
-  res.send("Wedding Server is running – RSVP & Photos Ready!");
+
+  res.send("Wedding API running 🚀");
+
 });
 
-// POST RSVP
+// =========================
+// RSVP Routes
+// =========================
+
 app.post("/rsvp", async (req, res) => {
-  const { name, attending, wish } = req.body;
-
-  if (!name || !wish) {
-    return res.status(400).json({ message: "Name and wish are required" });
-  }
-
-  // Convert attending to boolean
-  const attendingValue =
-    attending === "yes" ? 1 :
-    attending === "no" ? 0 :
-    null;
 
   try {
+
+    const {
+      name,
+      attending,
+      wish
+    } = req.body;
+
+    if (!name || !wish) {
+
+      return res.status(400).json({
+        message: "Name and wish required"
+      });
+
+    }
+
+    const attendingValue =
+      attending === "yes"
+        ? 1
+        : attending === "no"
+        ? 0
+        : null;
+
     await pool.execute(
-      "INSERT INTO rsvpspaul (name, attending, wish) VALUES (?, ?, ?)",
+      `
+      INSERT INTO rsvps
+      (name, attending, wish)
+      VALUES (?, ?, ?)
+      `,
       [name, attendingValue, wish]
     );
 
-    res.json({ message: "RSVP submitted successfully!" });
-  } catch (err) {
-    console.error("RSVP DB ERROR:", err);
-    res.status(500).json({
-      message: "Database error",
-      error: err.message
+    res.json({
+      message: "RSVP submitted"
     });
+
   }
+  catch (err) {
+
+    console.error(
+      "RSVP Error:",
+      err
+    );
+
+    res.status(500).json({
+      message: "Database error"
+    });
+
+  }
+
 });
 
-
-// GET RSVPs
 app.get("/rsvp", async (req, res) => {
+
   try {
-    const [results] = await pool.execute(
-      "SELECT name, wish FROM rsvpspaul ORDER BY created_at DESC"
-    );
-    res.json(results);
-  } catch (err) {
-    console.error("Fetch RSVPs Error:", err);
-    res.status(500).json({ message: "Database error" });
+
+    const [rows] =
+      await pool.execute(`
+        SELECT name, wish
+        FROM rsvps
+        ORDER BY created_at DESC
+      `);
+
+    res.json(rows);
+
   }
+  catch (err) {
+
+    console.error(
+      "Fetch RSVP Error:",
+      err
+    );
+
+    res.status(500).json({
+      message: "Database error"
+    });
+
+  }
+
 });
 
-// Serve uploaded photos
-app.use("/uploads", express.static(uploadsDir));
+// =========================
+// Photo API
+// =========================
 
-// GET wedding photos
 app.get("/api/wedding-photos", async (req, res) => {
+
   try {
-    const [rows] = await pool.execute(
-      "SELECT file_path, sender, timestamp FROM wedding_photospaul ORDER BY timestamp DESC"
+
+    const [rows] =
+      await pool.execute(`
+        SELECT image_url, sender, timestamp
+        FROM wedding_photos
+        ORDER BY timestamp DESC
+      `);
+
+    res.json(rows);
+
+  }
+  catch (err) {
+
+    console.error(
+      "Fetch Photos Error:",
+      err
     );
 
-    const baseUrl = `https://${req.get("host")}`;
+    res.status(500).json({
+      message: "Failed to fetch photos"
+    });
 
-
-    const photos = rows.map(row => ({
-      url: `${baseUrl}${row.file_path}`,
-      sender: row.sender,
-      timestamp: row.timestamp
-    }));
-
-    res.json(photos);
-  } catch (err) {
-    console.error("DB Error fetching photos:", err);
-    res.status(500).json({ error: "Failed to load photos" });
   }
 
 });
+
 // =========================
 // Telegram Bot
 // =========================
-const bot = new Telegraf(BOT_TOKEN);
 
-// Track processed media groups to avoid duplicates
-const processedGroups = new Set();
+const bot =
+  new Telegraf(BOT_TOKEN);
 
-// Bot commands
-bot.start((ctx) =>
-  ctx.reply(
-    "🎉 Welcome to Our Wedding Photo Bot! 📸\n\nSend your beautiful moments from the wedding day, and they'll appear instantly on our live photo gallery! 💕"
-  )
-);
+// Upload helper
+
+function uploadToCloudinary(buffer) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const stream =
+        cloudinary.uploader.upload_stream(
+          {
+            folder: "wedding_photos"
+          },
+          (error, result) => {
+
+            if (error) reject(error);
+            else resolve(result);
+
+          }
+        );
+
+      streamifier
+        .createReadStream(buffer)
+        .pipe(stream);
+
+    }
+  );
+
+}
+
+// Telegram Photo Handler
 
 bot.on("photo", async (ctx) => {
+
   try {
-    const message = ctx.message;
-    const photos = message.photo;
-    const sender = message.from.username || message.from.first_name || "Guest";
-    const mediaGroupId = message.media_group_id;
 
-    // Skip duplicate albums
-    if (mediaGroupId && processedGroups.has(mediaGroupId)) return;
-    if (mediaGroupId) processedGroups.add(mediaGroupId);
+    const photos =
+      ctx.message.photo;
 
-    const photo = photos[photos.length - 1]; // highest resolution
-    const fileId = photo.file_id;
+    const sender =
+      ctx.message.from.username ||
+      ctx.message.from.first_name ||
+      "Guest";
 
-    // Download file
-    const file = await ctx.telegram.getFile(fileId);
-    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
-    const response = await fetch(fileUrl);
-    if (!response.ok) throw new Error("Download failed");
+    const photo =
+      photos[photos.length - 1];
 
-    const buffer = await response.arrayBuffer();
-    const fileName = `${fileId}.jpg`;
-    const filePath = path.join(uploadsDir, fileName);
-    fs.writeFileSync(filePath, Buffer.from(buffer));
+    const fileId =
+      photo.file_id;
 
-    const webPath = `/uploads/${fileName}`;
+    // Telegram file
 
-    // Insert photo, ignore duplicates
+    const file =
+      await ctx.telegram.getFile(fileId);
+
+    const fileUrl =
+      `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
+
+    const response =
+      await fetch(fileUrl);
+
+    if (!response.ok)
+      throw new Error(
+        "Download failed"
+      );
+
+    const buffer =
+      Buffer.from(
+        await response.arrayBuffer()
+      );
+
+    // Upload to Cloudinary
+
+    const result =
+      await uploadToCloudinary(
+        buffer
+      );
+
+    const imageUrl =
+      result.secure_url;
+
+    // Save to DB
+
     await pool.execute(
-      "INSERT IGNORE INTO wedding_photospaul (file_id, file_path, sender) VALUES (?, ?, ?)",
-      [fileId, webPath, sender]
+      `
+      INSERT IGNORE INTO wedding_photos
+      (file_id, image_url, sender)
+      VALUES (?, ?, ?)
+      `,
+      [fileId, imageUrl, sender]
     );
 
-    // Auto-clear media group tracker
-    if (mediaGroupId) setTimeout(() => processedGroups.delete(mediaGroupId), 10000);
-
-   
-    await ctx.replyWithHTML(
-      `✨ Thank you <b>${sender}</b>! Your  photos are now live on the wedding website! ❤️`
+    await ctx.reply(
+      "📸 Photo uploaded successfully!"
     );
-  } catch (err) {
-    console.error("Photo save error:", err);
-    if (!ctx.message.media_group_id || !processedGroups.has(ctx.message.media_group_id)) {
-      await ctx.reply("❌ Sorry, something went wrong saving your photo(s). Please try again.");
-    }
+
   }
+  catch (err) {
+
+    console.error(
+      "Photo Upload Error:",
+      err
+    );
+
+    await ctx.reply(
+      "❌ Upload failed"
+    );
+
+  }
+
 });
 
 // =========================
-// Launch
+// Start
 // =========================
-async function startServerAndBot() {
-  await testDbConnection();
-  await initDatabase();
 
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+async function start() {
 
-  await bot.launch();
-  console.log("🤵👰 Wedding Photo Bot is LIVE!");
+  try {
+
+    await initDatabase();
+
+    app.listen(
+      PORT,
+      () => {
+
+        console.log(
+          `Server running on port ${PORT}`
+        );
+
+      }
+    );
+
+    await bot.launch();
+
+    console.log(
+      "Telegram Bot Running 🤖"
+    );
+
+  }
+  catch (err) {
+
+    console.error(
+      "Startup Error:",
+      err
+    );
+
+  }
+
 }
 
-startServerAndBot();
+start();
 
-// Graceful shutdown
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+// =========================
+// Shutdown
+// =========================
 
-module.exports = { startBot: async () => bot.launch(), stopBot: (signal) => bot.stop(signal) };
+process.once(
+  "SIGINT",
+  () => bot.stop("SIGINT")
+);
+
+process.once(
+  "SIGTERM",
+  () => bot.stop("SIGTERM")
+);
