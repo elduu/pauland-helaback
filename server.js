@@ -49,15 +49,19 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
+const allowedOrigins = [
+  "https://weddinginivitation.newblossomequb.net", // frontend
+  "http://localhost:5173",                        // local dev
+];
+
 app.use(cors({
   origin: function(origin, callback) {
-    // allow requests with no origin (like Postman)
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // allow Postman / curl
 
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
+      return callback(null, true);
     } else {
-      callback(new Error("CORS policy: origin not allowed"), false);
+      return callback(new Error("CORS policy: origin not allowed"), false);
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
