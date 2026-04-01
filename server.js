@@ -83,7 +83,7 @@ app.use(express.json());
 async function initDatabase() {
 
   await pool.execute(`
-    CREATE TABLE IF NOT EXISTS rsvps (
+    CREATE TABLE IF NOT EXISTS rsvps2 (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       attending BOOLEAN,
@@ -93,7 +93,7 @@ async function initDatabase() {
   `);
 
   await pool.execute(`
-    CREATE TABLE IF NOT EXISTS wedding_photos (
+    CREATE TABLE IF NOT EXISTS wedding_photos2 (
       id INT AUTO_INCREMENT PRIMARY KEY,
       file_id VARCHAR(255) UNIQUE,
       image_url TEXT NOT NULL,
@@ -147,7 +147,7 @@ app.post("/rsvp", async (req, res) => {
 
     await pool.execute(
       `
-      INSERT INTO rsvps
+      INSERT INTO rsvps2
       (name, attending, wish)
       VALUES (?, ?, ?)
       `,
@@ -181,7 +181,7 @@ app.get("/rsvp", async (req, res) => {
     const [rows] =
       await pool.execute(`
         SELECT name, wish
-        FROM rsvps
+        FROM rsvps2
         ORDER BY created_at DESC
       `);
 
@@ -214,7 +214,7 @@ app.get("/api/wedding-photos", async (req, res) => {
     const [rows] =
       await pool.execute(`
         SELECT image_url, sender, timestamp
-        FROM wedding_photos
+        FROM wedding_photos2
         ORDER BY timestamp DESC
       `);
 
@@ -327,7 +327,7 @@ bot.on("photo", async (ctx) => {
 
     await pool.execute(
       `
-      INSERT IGNORE INTO wedding_photos
+      INSERT IGNORE INTO wedding_photos2
       (file_id, image_url, sender)
       VALUES (?, ?, ?)
       `,
