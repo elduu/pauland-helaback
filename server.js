@@ -49,32 +49,23 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-const allowedOrigins = [
-  "https://apiinv.newblossomequb.net",
-  "https://weddinginvitation.newblossomequb.net",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-];
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS policy: origin not allowed"), false);
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(
-        new Error("Blocked by CORS")
-      );
-
-    },
-  })
-);
-
-app.use(express.json());
+// Handle preflight requests
+app.options("*", cors());
 
 // =========================
 // Database Init
