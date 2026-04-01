@@ -50,10 +50,9 @@ app.use(helmet());
 app.use(compression());
 
 const allowedOrigins = [
-  "https://weddinginivitation.newblossomequb.net", // frontend
-  "http://localhost:5173",                        // local dev
+  "https://weddinginvitation.newblossomequb.net", // correct frontend domain
+  "http://localhost:5173"                           // local dev
 ];
-
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true); // allow Postman / curl
