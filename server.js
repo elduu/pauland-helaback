@@ -114,7 +114,7 @@ app.get("/", (req, res) => {
 // RSVP Routes
 // =========================
 
-app.post("/rsvp", async (req, res) => {
+app.post("api/rsvp", async (req, res) => {
 
   try {
 
@@ -168,7 +168,7 @@ app.post("/rsvp", async (req, res) => {
 
 });
 
-app.get("/rsvp", async (req, res) => {
+app.get("api/rsvp", async (req, res) => {
 
   try {
 
