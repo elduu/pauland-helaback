@@ -145,7 +145,7 @@ app.post("/api/rsvp", async (req, res) => {
       (name, attending, wish)
       VALUES (?, ?, ?)
       `,
-      [name, attendingValue, wish]
+      [name, attending, wish]
     );
 
     res.json({
