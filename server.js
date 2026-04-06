@@ -48,7 +48,7 @@ const app = express();
 
 app.use(helmet());
 app.use(compression());
-
+app.use(express.json());
 const allowedOrigins = [
   "https://weddinginvitation.newblossomequb.net", // correct frontend domain
   "http://localhost:5173"                           // local dev
@@ -145,7 +145,7 @@ app.post("/api/rsvp", async (req, res) => {
       (name, attending, wish)
       VALUES (?, ?, ?)
       `,
-      [name, attending, wish]
+      [name, attendingValue, wish]
     );
 
     res.json({
