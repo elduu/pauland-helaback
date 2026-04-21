@@ -53,7 +53,10 @@ const allowedOrigins = [
   "https://weddinginvitation.newblossomequb.net", // correct frontend domain
   "http://localhost:5173" ,
   "https://paulandhella.newblossomequb.net",
-"http://localhost:8080"                  // local dev
+"http://localhost:8080"  ,
+"https://api.paulandhella.com" ,
+"https://paulandhella.com",
+"https://www.paulandhella.com"              // local dev
 ];
 app.use(cors({
   origin: function(origin, callback) {
