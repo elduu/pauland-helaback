@@ -331,7 +331,7 @@ bot.on("photo", async (ctx) => {
     );
 
     await ctx.reply(
-      "📸 Photo uploaded successfully!"
+      "💍 Thank you for sharing your photo! 📸 It has been uploaded successfully."
     );
 
   }
