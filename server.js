@@ -272,27 +272,24 @@ function uploadToCloudinary(buffer) {
 }
 
 // Telegram Photo Handler
-
+const processedAlbums = new Set();
 bot.on("photo", async (ctx) => {
-
   try {
 
-    const photos =
-      ctx.message.photo;
+    const photos = ctx.message.photo;
 
     const sender =
       ctx.message.from.username ||
       ctx.message.from.first_name ||
       "Guest";
 
-    const photo =
-      photos[photos.length - 1];
+    const photo = photos[photos.length - 1];
+    const fileId = photo.file_id;
 
-    const fileId =
-      photo.file_id;
+    // Detect album
+    const albumId = ctx.message.media_group_id;
 
     // Telegram file
-
     const file =
       await ctx.telegram.getFile(fileId);
 
@@ -303,9 +300,7 @@ bot.on("photo", async (ctx) => {
       await fetch(fileUrl);
 
     if (!response.ok)
-      throw new Error(
-        "Download failed"
-      );
+      throw new Error("Download failed");
 
     const buffer =
       Buffer.from(
@@ -313,17 +308,13 @@ bot.on("photo", async (ctx) => {
       );
 
     // Upload to Cloudinary
-
     const result =
-      await uploadToCloudinary(
-        buffer
-      );
+      await uploadToCloudinary(buffer);
 
     const imageUrl =
       result.secure_url;
 
     // Save to DB
-
     await pool.execute(
       `
       INSERT IGNORE INTO wedding_photos2
@@ -333,9 +324,32 @@ bot.on("photo", async (ctx) => {
       [fileId, imageUrl, sender]
     );
 
-    await ctx.reply(
-      "💍 Thank you for sharing your photo! 📸 It has been uploaded successfully."
-    );
+    // Reply ONLY ONCE per album
+    if (albumId) {
+
+      if (!processedAlbums.has(albumId)) {
+
+        processedAlbums.add(albumId);
+
+        await ctx.reply(
+          "📸 Photos uploaded successfully! Thank you for sharing your memories 💍"
+        );
+
+        // Cleanup after delay
+        setTimeout(() => {
+          processedAlbums.delete(albumId);
+        }, 60000);
+
+      }
+
+    } else {
+
+      // Single photo
+      await ctx.reply(
+        "📸 Photo uploaded successfully! Thank you for sharing 💍"
+      );
+
+    }
 
   }
   catch (err) {
@@ -350,9 +364,7 @@ bot.on("photo", async (ctx) => {
     );
 
   }
-
 });
-
 // =========================
 // Start
 // =========================
